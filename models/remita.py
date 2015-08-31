@@ -86,10 +86,10 @@ class AcquirerRemita(osv.Model):
         base_url = self.pool['ir.config_parameter'].get_param(cr, uid, 'web.base.url')
         acquirer = self.browse(cr, uid, id, context=context)
         
-        print "{'return_url': '%s'}"% tx_values['return_url']
+        #print "{'return_url': '%s'}"% tx_values['return_url']
         ret_url = "{'return_url': '%s'}"% tx_values['return_url']
         ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
-        print ret_url2
+        print ret_url
         s = ""
         seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url, str(acquirer.brq_secretkey));
         #print s.join(seq)
