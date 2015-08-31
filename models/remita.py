@@ -89,6 +89,7 @@ class AcquirerRemita(osv.Model):
         #print "{'return_url': '%s'}"% tx_values['return_url']
         ret_url = "{'return_url': '%s'}"% tx_values['return_url']
         ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
+        ret_url3 = urlparse.urljoin(base_url, RemitaController._return_url)
         print ret_url
         s = ""
         seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url, str(acquirer.brq_secretkey));
