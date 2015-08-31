@@ -91,7 +91,7 @@ class AcquirerRemita(osv.Model):
         ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
         print ret_url2
         s = ""
-        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url2, str(acquirer.brq_secretkey));
+        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url, str(acquirer.brq_secretkey));
         #print s.join(seq)
         #print dict.keys(tx_values)
         
