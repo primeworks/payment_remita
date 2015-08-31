@@ -9,11 +9,6 @@
                 <input type="hidden" name="serviceTypeId" t-att-value="tx_values['Brq_servicetype']"/>
                 <input type="hidden" name="hash" t-att-value="tx_values['Brq_hash']"/>
                 <input type="hidden" name="orderId" t-att-value="tx_values['Brq_invoicenumber']"/>
-                <input type="hidden" name="Brq_currency" t-att-value="tx_values['Brq_currency']"/>
-                <input type="hidden" name="merchant_ref" t-att-value="tx_values['Brq_signature']"/>
-                <input type='hidden' name='developer_code' value='5473a35e7bf45' />
-                <input type="hidden" name="brq_test" t-att-value="tx_values['brq_test']"/>
-                <input type="hidden" name="Brq_culture" t-att-value="tx_values['Brq_culture']"/>
                 <!-- URLs -->
                 <input t-if="tx_values.get('Brq_return')" type='hidden' name='success_url'
                     t-att-value="tx_values.get('Brq_return')"/>
