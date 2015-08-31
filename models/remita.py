@@ -86,16 +86,25 @@ class AcquirerRemita(osv.Model):
         base_url = self.pool['ir.config_parameter'].get_param(cr, uid, 'web.base.url')
         acquirer = self.browse(cr, uid, id, context=context)
         
-        s = "+"
-        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), urlparse.urljoin(base_url, RemitaController._return_url), str(acquirer.brq_secretkey));
-        print s.join(seq)
+        print "{'return_url': '%s'}"% tx_values['return_url']
+        ret_url = "{'return_url': '%s'}"% tx_values['return_url']
+        ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
+        print ret_url2
+        s = ""
+        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url2, str(acquirer.brq_secretkey));
+        #print s.join(seq)
+        #print dict.keys(tx_values)
+        
         
         hash_object = sha512(s.join(seq))
         hex_dig = hash_object.hexdigest()
-        print(hex_dig)
+        #print(hex_dig)
+        
+        #hashd = sha512(str(25479164430731SO0022320.0{'return_url': '/shop/payment/validate'}1946))
+        #print hashd
         
         hash = hex_dig
-        print hash
+        #print hash
         #print tx_values
 
         remita_tx_values = dict(tx_values)
@@ -115,6 +124,7 @@ class AcquirerRemita(osv.Model):
             'Brq_culture': (partner_values.get('lang') or 'en_US').replace('_', '-'),
         })
         print remita_tx_values
+        #print remita_tx_values.get('return_url')
         if remita_tx_values.get('return_url'):
             remita_tx_values['add_returndata'] = {'return_url': '%s' % remita_tx_values.pop('return_url')}
         else: 
@@ -152,6 +162,7 @@ class TxRemita(osv.Model):
         transaction_id = data.get('transaction_id')
         #transaction_id = '559f55426a93a'
         response = urllib2.urlopen('https://remita.com/?v_transaction_id=%s&type=json' % (transaction_id))
+        response = urllib2.urlopen('http://www.remitademo.net/remita/ecomm/%s/%s/%s/json/status.reg' % acquirer.brq_websitekey, tx_values['reference'], hash)
         myTx = json.load(response)
 
 #        reference, pay_id, shasign = data.get('memo'), data.get('transaction_id'), data.get('merchant_ref')
