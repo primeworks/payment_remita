@@ -18,6 +18,8 @@ _logger = logging.getLogger(__name__)
 
 class AcquirerRemita(osv.Model):
     _inherit = 'payment.acquirer'
+    merchantID = 0
+    apikey = 0
 
     def _get_remita_urls(self, cr, uid, environment, context=None):
         """ Remita URLs
@@ -79,6 +81,14 @@ class AcquirerRemita(osv.Model):
         if isinstance(sign, str):
             sign = urlparse.parse_qsl(sign)
         shasign = sha1(sign).hexdigest()
+        
+        s2 = ""
+        seq2 = (str(acquirer.brq_servicetypeid), str(acquirer.brq_secretkey), str(acquirer.brq_websitekey))
+        
+        hash_object2 = sha512(s2.join(seq2))
+        
+        hex_dig2 = hash_object2.hexdigest()
+        shasign = hex_dig2
         return shasign
 
 
@@ -87,15 +97,19 @@ class AcquirerRemita(osv.Model):
         acquirer = self.browse(cr, uid, id, context=context)
         
         #print "{'return_url': '%s'}"% tx_values['return_url']
-        ret_url = "{'return_url': '%s'}"% tx_values['return_url']
-        ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
+        #ret_url = "{'return_url': '%s'}"% tx_values['return_url']
+        #ret_url2 = "{'return_url': '%s'}"% urlparse.urljoin(base_url, RemitaController._return_url)
         ret_url3 = urlparse.urljoin(base_url, RemitaController._return_url)
-        print ret_url
+        #print ret_url
         s = ""
-        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url, str(acquirer.brq_secretkey));
-        #print s.join(seq)
+        seq = (str(acquirer.brq_websitekey), acquirer.brq_servicetypeid, str(tx_values['reference']), str(tx_values['amount']), ret_url3, str(acquirer.brq_secretkey));
+        print s.join(seq)
         #print dict.keys(tx_values)
         
+        
+        AcquirerRemita.merchantID = acquirer.brq_websitekey
+        
+        AcquirerRemita.apikey = acquirer.brq_secretkey
         
         hash_object = sha512(s.join(seq))
         hex_dig = hash_object.hexdigest()
@@ -118,6 +132,7 @@ class AcquirerRemita(osv.Model):
             'Brq_currency': tx_values['currency'] and tx_values['currency'].name or '',
             'Brq_invoicenumber': tx_values['reference'],
             'brq_test': False if acquirer.environment == 'prod' else True,
+           #'Brq_return': '%s' % ret_url,
             'Brq_return': '%s' % urlparse.urljoin(base_url, RemitaController._return_url),
             'Brq_returncancel': '%s' % urlparse.urljoin(base_url, RemitaController._cancel_url),
             'Brq_returnerror': '%s' % urlparse.urljoin(base_url, RemitaController._exception_url),
@@ -141,14 +156,14 @@ class TxRemita(osv.Model):
     _inherit = 'payment.transaction'
 
     # Remita status
-    _remita_valid_tx_status = ['Approved']
-    _remita_pending_tx_status = ['Pending']
-    _remita_cancel_tx_status = ['Disputed']
-    _remita_error_tx_status = ['Failed']
-    _remita_reject_tx_status = ['Disputed']
+    _remita_valid_tx_status = "01"
+    _remita_pending_tx_status = "021"
+    _remita_cancel_tx_status = "012"
+    _remita_error_tx_status = "02"
+    _remita_reject_tx_status = "022"
 
     _columns = {
-         'remita_txnid': fields.char('Transaction ID'),
+         'remita_txnid': fields.char('RRR'),
     }
     
 
@@ -159,15 +174,33 @@ class TxRemita(osv.Model):
     def _remita_form_get_tx_from_data(self, cr, uid, data, context=None):
         """ Given a data dict coming from remita, verify it and find the related
         transaction record. """
-        #Use transaction_id to pull in more info from Remita
-        transaction_id = data.get('transaction_id')
-        #transaction_id = '559f55426a93a'
-        response = urllib2.urlopen('https://remita.com/?v_transaction_id=%s&type=json' % (transaction_id))
-        response = urllib2.urlopen('http://www.remitademo.net/remita/ecomm/%s/%s/%s/json/status.reg' % acquirer.brq_websitekey, tx_values['reference'], hash)
-        myTx = json.load(response)
+        #Use RRR to pull in more info from Remita
+        #acquirer = self.browse(cr, uid, id, context=context)
+        #merchantID = remita_tx_values.get('Brq_websitekey')
+        RRR = data.get('RRR')
+        #print RRR
+        
+        orderID = data.get('orderID')
+        #print orderID
+        
+        merchantID2 = AcquirerRemita.merchantID
+        apikey2 = AcquirerRemita.apikey
+        
+        s2 = ""
+        seq2 = (str(RRR), str(apikey2), str(merchantID2))
 
-#        reference, pay_id, shasign = data.get('memo'), data.get('transaction_id'), data.get('merchant_ref')
-        reference, pay_id, shasign = myTx['memo'], data.get('transaction_id'), myTx['merchant_ref']
+        hash_object2 = sha512(s2.join(seq2))
+
+        hex_dig2 = hash_object2.hexdigest()
+        #print hex_dig2
+        
+        response = urllib2.urlopen('http://www.remitademo.net/remita/ecomm/%s/%s/%s/json/status.reg' % (str(merchantID2), str(RRR), str(hex_dig2)))
+        myTx = json.load(response)
+        #print myTx
+        #print "Hello AA"
+
+#        reference, pay_id, shasign = data.get('memo'), data.get('RRR'), data.get('merchant_ref')
+        reference, pay_id, shasign = orderID, data.get('RRR'), hex_dig2
         
         if not reference or not pay_id or not shasign:
             #        if not reference:
@@ -195,57 +228,54 @@ class TxRemita(osv.Model):
 
         return tx
 
-    def _remita_form_get_invalid_parameters(self, cr, uid, tx, data, context=None):
-        invalid_parameters = []
-
-        if tx.acquirer_reference and data.get('transaction_id') != tx.acquirer_reference:
-            invalid_parameters.append(('Transaction Id', data.get('transaction_id'), tx.acquirer_reference))
-        # check what is buyed
-        
-        #Use transaction_id to pull in more info from Remita
-        transaction_id = data.get('transaction_id')
-        #transaction_id = '559f55426a93a'
-        response = urllib2.urlopen('https://remita.com/?v_transaction_id=%s&type=json' % (transaction_id))
-        myTx = json.load(response)
-        
-
-        if float_compare(float(myTx.get('total', '0.0')), tx.amount, 2) != 0:
-            invalid_parameters.append(('Amount', data.get('total'), '%.2f' % tx.amount))
-#        if data.get('BRQ_CURRENCY') != tx.currency_id.name:
-#            invalid_parameters.append(('Currency', data.get('BRQ_CURRENCY'), tx.currency_id.name))
-
-        return invalid_parameters
-
+   
     def _remita_form_validate(self, cr, uid, tx, data, context=None):
         
-        #Use transaction_id to pull in more info from Remita
-        transaction_id = data.get('transaction_id')
-        #transaction_id = '559f55426a93a'
-        response = urllib2.urlopen('https://remita.com/?v_transaction_id=%s&type=json' % (transaction_id))
-        myTx = json.load(response)
+        #Use RRR to pull in more info from Remita
+        RRR = data.get('RRR')
+        print RRR
         
-        #Pull out the confirmations from the transaction_id
+        orderID = data.get('orderID')
+        print orderID
+        
+        merchantID2 = AcquirerRemita.merchantID
+        apikey2 = AcquirerRemita.apikey
+        
+        s2 = ""
+        seq2 = (str(RRR), str(apikey2), str(merchantID2))
+        
+        hash_object2 = sha512(s2.join(seq2))
+        
+        hex_dig2 = hash_object2.hexdigest()
+        
+        
+        response = urllib2.urlopen('http://www.remitademo.net/remita/ecomm/%s/%s/%s/json/status.reg' % (str(merchantID2), str(RRR), str(hex_dig2)))
+        myTx = json.load(response)
+        print myTx
+        #Pull out the confirmations from the RRR
         status_code = myTx['status']
-        if status_code in self._remita_valid_tx_status:
-            #        if data.get('transaction_id'):
+        print status_code
+        print str(self._remita_valid_tx_status)
+        if status_code in str(self._remita_valid_tx_status):
+            #        if data.get('RRR'):
             # Adding more detail to the final form
-            _logger.info('Validated Paypal payment for tx %s: set as done' % (myTx['memo']))
+            _logger.info('Validated Paypal payment for tx %s: set as done' % (orderID))
             tx.write({
                 'state': 'done',
-                'remita_txnid': data.get('transaction_id'),
-                'date_validate': myTx['date'],
+                'remita_txnid': data.get('RRR'),
+                'date_validate': myTx['transactiontime'],
             })
             return True
-        elif status_code in self._remita_pending_tx_status:
+        elif status_code in str(self._remita_pending_tx_status):
             tx.write({
                 'state': 'pending',
-                'remita_txnid': data.get('transaction_id'),
+                'remita_txnid': data.get('RRR'),
             })
             return True
-        elif status_code in self._remita_cancel_tx_status:
+        elif status_code in str(self._remita_cancel_tx_status):
             tx.write({
                 'state': 'cancel',
-                'remita_txnid': data.get('transaction_id'),
+                'remita_txnid': data.get('RRR'),
             })
             return True
         else:
@@ -254,6 +284,6 @@ class TxRemita(osv.Model):
             tx.write({
                 'state': 'error',
                 'state_message': error,
-                'remita_txnid': data.get('transaction_id'),
+                'remita_txnid': data.get('RRR'),
             })
             return False

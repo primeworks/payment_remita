@@ -10,15 +10,8 @@
                 <input type="hidden" name="hash" t-att-value="tx_values['Brq_hash']"/>
                 <input type="hidden" name="orderId" t-att-value="tx_values['Brq_invoicenumber']"/>
                 <!-- URLs -->
-                <input t-if="tx_values.get('Brq_return')" type='hidden' name='success_url'
+                <input t-if="tx_values.get('Brq_return')" type='hidden' name='responseurl'
                     t-att-value="tx_values.get('Brq_return')"/>
-                <input t-if="tx_values.get('Brq_returncancel')" type='hidden' name='Brq_returncancel'
-                    t-att-value="tx_values.get('Brq_returncancel')"/>
-                <input t-if="tx_values.get('Brq_returnerror')" type='hidden' name='Brq_returnerror'
-                    t-att-value="tx_values.get('Brq_returnerror')"/>
-                <input t-if="tx_values.get('Brq_returnreject')" type='hidden' name='Brq_returnreject'
-                    t-att-value="tx_values.get('Brq_returnreject')"/>
-                <input type='hidden' name='responseurl' t-att-value="tx_values.get('Brq_return')"/>
                 <!-- submit -->
                 <button type="submit" width="100px"
                     t-att-class="submit_class">
