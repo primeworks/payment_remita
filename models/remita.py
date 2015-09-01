@@ -77,10 +77,10 @@ class AcquirerRemita(osv.Model):
         else:
             sign = ''.join('%s=%s' % (k,get_value(k)) for k in keys)
         #Add the pre-shared secret key at the end of the signature
-        sign = sign + acquirer.brq_secretkey
+        sign = acquirer.brq_servicetypeid
         if isinstance(sign, str):
             sign = urlparse.parse_qsl(sign)
-        shasign = sha1(sign).hexdigest()
+                #shasign = sha1(sign).hexdigest()
         
         s2 = ""
         seq2 = (str(acquirer.brq_servicetypeid), str(acquirer.brq_secretkey), str(acquirer.brq_websitekey))
